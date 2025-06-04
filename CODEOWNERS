@@ -1,0 +1,20 @@
+# Global owners
+* @team
+
+# Go specific files
+*.go @team
+go.mod @team
+go.sum @gteam
+
+# CI/CD files
+.github/workflows/ @team
+Dockerfile @team
+
+# Documentation
+*.md @team
+README.md @team
+
+# Configuration files
+*.yml @team
+*.yaml @team
+*.json @team
