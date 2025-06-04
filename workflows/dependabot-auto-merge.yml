@@ -1,0 +1,109 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_run:
+    workflows: ["Go CI/CD"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+    - name: Get Dependabot metadata
+      id: metadata
+      uses: dependabot/fetch-metadata@v1
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+    
+    - name: Wait for CI to complete
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo, number } = context.issue;
+          
+          // Wait for all required checks to complete
+          const maxWaitTime = 10 * 60 * 1000; // 10 minutes
+          const pollInterval = 30 * 1000; // 30 seconds
+          const startTime = Date.now();
+          
+          while (Date.now() - startTime < maxWaitTime) {
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: number
+            });
+            
+            if (pr.mergeable_state === 'clean') {
+              console.log('All checks passed!');
+              return;
+            } else if (pr.mergeable_state === 'dirty' || pr.mergeable_state === 'unstable') {
+              throw new Error(`PR checks failed: ${pr.mergeable_state}`);
+            }
+            
+            console.log(`Waiting for checks... Current state: ${pr.mergeable_state}`);
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+          }
+          
+          throw new Error('Timeout waiting for checks to complete');
+    
+    - name: Auto-approve and merge
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo, number } = context.issue;
+          const updateType = '${{ steps.metadata.outputs.update-type }}';
+          const dependencyType = '${{ steps.metadata.outputs.dependency-type }}';
+          
+          // Define auto-merge rules
+          const shouldAutoMerge = (
+            updateType === 'version-update:semver-patch' ||
+            (updateType === 'version-update:semver-minor' && dependencyType === 'direct:development')
+          );
+          
+          if (shouldAutoMerge) {
+            // Approve the PR
+            await github.rest.pulls.createReview({
+              owner,
+              repo,
+              pull_number: number,
+              event: 'APPROVE',
+              body: '✅ Auto-approved: Safe dependency update (patch/minor dev dependency)'
+            });
+            
+            // Merge the PR
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: number,
+              commit_title: 'deps: Auto-merge dependabot update',
+              merge_method: 'squash'
+            });
+            
+            console.log('✅ Successfully auto-merged dependabot PR');
+          } else {
+            console.log('⏸️ PR requires manual review (major update or production dependency)');
+            
+            // Add a comment explaining why it wasn't auto-merged
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body: `🔍 **Manual Review Required**
+              
+This dependency update requires manual review because:
+- Update type: ${updateType}
+- Dependency type: ${dependencyType}
+
+Please review the changes and merge manually if appropriate.`
+            });
+          }
