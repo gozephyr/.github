@@ -1,0 +1,55 @@
+version: 2
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "go-team"
+      - "backend-team"
+    assignees:
+      - "tech-lead"
+      - "go-maintainer"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "go"
+      - "automated"
+    # Group related updates
+    groups:
+      go-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      go-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    # Ignore specific dependencies if needed
+    ignore:
+      - dependency-name: "golang.org/x/sys"
+        versions: ["0.1.x", "0.2.x"]
+    
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "devops-team"
+    assignees:
+      - "ci-maintainer"
+    labels:
+      - "github-actions"
+      - "ci-cd"
