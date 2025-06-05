@@ -21,21 +21,21 @@ jobs:
           script: |
             const { owner, repo, number } = context.issue;
             // Always assign and request review from MitulShah1
-            await github.rest.issues.addAssignees({
-              owner,
-              repo,
-              issue_number: number,
+                await github.rest.issues.addAssignees({
+                  owner,
+                  repo,
+                  issue_number: number,
               assignees: ['MitulShah1']
-            });
-            await github.rest.pulls.requestReviewers({
-              owner,
-              repo,
-              pull_number: number,
+                });
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number: number,
               reviewers: ['MitulShah1']
-            });
-            await github.rest.issues.addLabels({
-              owner,
-              repo,
-              issue_number: number,
+                });
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
               labels: ['dependencies', 'automated']
             });
