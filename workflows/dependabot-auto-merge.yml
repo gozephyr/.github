@@ -98,12 +98,6 @@ jobs:
               owner,
               repo,
               issue_number: number,
-              body: `🔍 **Manual Review Required**
-              
-This dependency update requires manual review because:
-- Update type: ${updateType}
-- Dependency type: ${dependencyType}
-
-Please review the changes and merge manually if appropriate.`
+              body: `Manual review required. Update type: ${updateType}, Dependency type: ${dependencyType}. Please review and merge manually if appropriate.`
             });
           }

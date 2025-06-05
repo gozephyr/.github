@@ -13,114 +13,29 @@ jobs:
   auto-assign:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
-    
     steps:
-      - name: Get Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v1
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-      
-      - name: Auto-assign based on package ecosystem
+      - name: Auto-assign and label
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo, number } = context.issue;
-            const ecosystem = '${{ steps.metadata.outputs.package-ecosystem }}';
-            const updateType = '${{ steps.metadata.outputs.update-type }}';
-            const dependencyName = '${{ steps.metadata.outputs.dependency-names }}';
-            
-            // Define assignees based on ecosystem and update type
-            let assignees = [];
-            let reviewers = [];
-            let labels = ['dependencies', 'automated'];
-            
-            if (ecosystem === 'gomod') {
-              assignees = ['team'];
-              reviewers = ['team'];
-              labels.push('go', 'backend');
-              
-              // Critical Go dependencies get extra attention
-              const criticalDeps = ['github.com/gin-gonic/gin', 'gorm.io/gorm', 'github.com/gorilla/mux'];
-              if (criticalDeps.some(dep => dependencyName.includes(dep))) {
-                assignees.push('tech-lead');
-                reviewers.push('senior-developers');
-                labels.push('critical-dependency');
-              }
-              
-              // Major updates need senior review
-              if (updateType.includes('major')) {
-                assignees.push('team');
-                reviewers.push('team');
-                labels.push('major-update', 'needs-review');
-              }
-            } else if (ecosystem === 'github-actions') {
-              assignees = ['ci-maintainer', 'devops-lead'];
-              reviewers = ['team'];
-              labels.push('ci-cd', 'github-actions');
-            } else if (ecosystem === 'docker') {
-              assignees = ['team', 'team'];
-              reviewers = ['team'];
-              labels.push('docker', 'infrastructure');
-            }
-            
-            // Filter out non-existent users (GitHub will ignore invalid usernames)
-            const validAssignees = assignees.filter(user => user && user.length > 0);
-            const validReviewers = reviewers.filter(user => user && user.length > 0);
-            
-            try {
-              // Add assignees
-              if (validAssignees.length > 0) {
-                await github.rest.issues.addAssignees({
-                  owner,
-                  repo,
-                  issue_number: number,
-                  assignees: validAssignees
-                });
-                console.log(`Assigned: ${validAssignees.join(', ')}`);
-              }
-              
-              // Request reviews
-              if (validReviewers.length > 0) {
-                await github.rest.pulls.requestReviewers({
-                  owner,
-                  repo,
-                  pull_number: number,
-                  reviewers: validReviewers
-                });
-                console.log(`Requested reviews from: ${validReviewers.join(', ')}`);
-              }
-              
-              // Add labels
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: number,
-                labels: labels
-              });
-              console.log(`Added labels: ${labels.join(', ')}`);
-              
-              // Add comment with context
-              const comment = `🤖 **Dependabot Auto-assignment**
-              
-**Package Ecosystem:** ${ecosystem}
-**Update Type:** ${updateType}
-**Dependencies:** ${dependencyName}
-
-**Auto-assigned to:** ${validAssignees.join(', ')}
-**Reviewers requested:** ${validReviewers.join(', ')}
-
-Please review and merge if tests pass. For major updates, ensure backward compatibility.`;
-              
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: number,
-                body: comment
-              });
-              
-            } catch (error) {
-              console.error('Error in auto-assignment:', error);
-              core.setFailed(`Auto-assignment failed: ${error.message}`);
-            }
+            // Always assign and request review from MitulShah1
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: number,
+              assignees: ['MitulShah1']
+            });
+            await github.rest.pulls.requestReviewers({
+              owner,
+              repo,
+              pull_number: number,
+              reviewers: ['MitulShah1']
+            });
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: number,
+              labels: ['dependencies', 'automated']
+            });
